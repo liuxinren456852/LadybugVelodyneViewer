@@ -6,26 +6,22 @@
 #include <iostream>
 #include <iomanip>
 
-#define M_PI 3.14159265358979323846
-
 double ViewerWidget::velodyne_range_scale = 0.002;
 double ViewerWidget::velodyne_bottom_to_top_dist = 0.0762;
 
 ViewerWidget::ViewerWidget(QWidget * parent)
 	: QGLWidget(parent)
-	, velodyne_file(new std::ifstream ("C:\\Users\\Public\\loki\\velodyne2.txt", std::ios::binary))
 	, textureIndex (-1)
 	, init(false)
 	, play(false)
 	, recording(true)
 {
-	time = 486.0f;
 }
 
 ViewerWidget::~ViewerWidget()
 {
-	velodyne_file->close();
-	delete velodyne_file;
+	//velodyne_file->close();
+	//delete velodyne_file;
 }
 
 unsigned short ViewerWidget::ntohs(unsigned short in)
@@ -48,13 +44,13 @@ unsigned long ViewerWidget::ntohl(unsigned long in)
 void ViewerWidget::loadShaders()
 {
 	panoramaShader = new QGLShaderProgram(this);
-	panoramaShader->addShaderFromSourceFile(QGLShader::Vertex, "panorama_vertex.glsl");
-	panoramaShader->addShaderFromSourceFile(QGLShader::Fragment, "panorama_fragment.glsl");
+	panoramaShader->addShaderFromSourceFile(QGLShader::Vertex, "shaders/panorama_vertex.glsl");
+	panoramaShader->addShaderFromSourceFile(QGLShader::Fragment, "shaders/panorama_fragment.glsl");
 	panoramaShader->link();
 
 	pointsShader = new QGLShaderProgram(this);
-	pointsShader->addShaderFromSourceFile(QGLShader::Vertex, "points_vertex.glsl");
-	pointsShader->addShaderFromSourceFile(QGLShader::Fragment, "points_fragment.glsl");
+	pointsShader->addShaderFromSourceFile(QGLShader::Vertex, "shaders/points_vertex.glsl");
+	pointsShader->addShaderFromSourceFile(QGLShader::Fragment, "shaders/points_fragment.glsl");
 	pointsShader->link();
 }
 
@@ -179,7 +175,7 @@ void ViewerWidget::loadPoints()
 
 		velodyne_keys[p->second] = velodynes.size();
 		velodynes.push_back(std::make_pair(points.size()/3, 0));
-		std::pair<int,int> & velodyne_entry = *velodynes.rbegin();
+		std::pair<size_t,int> & velodyne_entry = *velodynes.rbegin();
 
 		for (int i = 0; i < 12; ++i)
 		{
@@ -262,6 +258,9 @@ void ViewerWidget::drawPanorama()
 
 void ViewerWidget::drawPoints()
 {
+	if (!points.size())
+		return;
+
 	pointsShader->bind();
 
 	glEnable(GL_POINT_SMOOTH);
@@ -278,8 +277,8 @@ void ViewerWidget::drawPoints()
 
 	for (std::multimap<double,std::streampos>::const_iterator p = low; p != high; ++p)
 	{
-		const std::pair<int,int> & velodyne = velodynes[velodyne_keys[p->second]];
-		glDrawArrays(GL_POINTS, velodyne.first, velodyne.second);
+		const std::pair<size_t,int> & velodyne = velodynes[velodyne_keys[p->second]];
+		glDrawArrays(GL_POINTS, (GLuint)velodyne.first, velodyne.second);
 	}
 
 	glDisableClientState(GL_VERTEX_ARRAY);
@@ -354,14 +353,9 @@ void ViewerWidget::togglePlay()
 void ViewerWidget::initializeGL()
 {
 	init = true;
-	loadVelodyneKeys();
-	loadVelodyneCalibrations();
 	loadShaders();
 	loadMesh();
-	loadLadybugKeys();
-	loadPoints();
 	initTexture();
-	loadTexture();
 }
 
 void ViewerWidget::recordImage()

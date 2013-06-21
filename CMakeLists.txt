@@ -34,10 +34,25 @@ IF(UNIX)
     ADD_DEFINITIONS(-fPIC)
 ENDIF(UNIX)
 
+SET(LadybugVelodyne_GLSL_SHADERS
+    shaders/panorama_vertex.glsl
+    shaders/panorama_fragment.glsl
+    shaders/points_vertex.glsl
+    shaders/points_fragment.glsl
+)
+
+FOREACH (shader ${LadybugVelodyne_GLSL_SHADERS})
+	add_custom_command(
+		OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${shader}
+		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${shader} ${CMAKE_CURRENT_BINARY_DIR}/${shader}
+		MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/${shader})
+ENDFOREACH(shader)
+
 ADD_EXECUTABLE(LadybugVelodyne
     ${LadybugVelodyne_SOURCES} 
     ${LadybugVelodyne_FORMS_HEADERS}
     ${LadybugVelodyne_RESOURCES_RCC}
+	${LadybugVelodyne_GLSL_SHADERS}
 )
 TARGET_LINK_LIBRARIES(LadybugVelodyne
     Qt5::Gui

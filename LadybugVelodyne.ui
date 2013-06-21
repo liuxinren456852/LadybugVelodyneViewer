@@ -1,29 +1,65 @@
 <UI version="4.0" >
- <class>LadybugVelodyneClass</class>
- <widget class="QMainWindow" name="LadybugVelodyneClass" >
-  <property name="objectName" >
-   <string notr="true">LadybugVelodyneClass</string>
-  </property>
-  <property name="geometry" >
-   <rect>
-	<x>0</x>
-	<y>0</y>
-	<width>600</width>
-	<height>400</height>
-   </rect>
-  </property>
-  <property name="windowTitle" >
-   <string>LadybugVelodyne</string>
-  </property>
-  <widget class="QMenuBar" name="menuBar" />
-  <widget class="QToolBar" name="mainToolBar" />
-  <widget class="QWidget" name="centralWidget" />
-  <widget class="QStatusBar" name="statusBar" />
- </widget>
- <layoutDefault spacing="6" margin="11" />
- <pixmapfunction></pixmapfunction>
- <resources>
-   <include location="LadybugVelodyne.qrc"/>
- </resources>
- <connections/>
+  <class>LadybugVelodyneClass</class>
+  <widget class="QMainWindow" name="LadybugVelodyneClass" >
+    <property name="objectName" >
+      <string notr="true">LadybugVelodyneClass</string>
+    </property>
+    <property name="geometry" >
+      <rect>
+	      <x>0</x>
+	      <y>0</y>
+	      <width>600</width>
+	      <height>400</height>
+      </rect>
+    </property>
+    <property name="windowTitle" >
+      <string>LadybugVelodyne</string>
+    </property>
+    <widget class="QMenuBar" name="menuBar" />
+    <widget class="QToolBar" name="mainToolBar" />
+    <widget class="QWidget" name="centralWidget">
+      <layout class="QVBoxLayout">
+        <item>
+          <widget class="QSlider" name="slider">
+            <property name="orientation">
+              <set>Qt::Horizontal</set>
+            </property>
+          </widget>
+        </item>
+        <item>
+          <widget class="QPushButton" name="play">
+            <property name="text">
+              <string>Play/Pause</string>
+            </property>
+          </widget>
+        </item>
+        <item>
+          <widget class="ViewerWidget" name="viewer">
+            
+          </widget>
+        </item>
+      </layout>
+    </widget>
+    <widget class="QStatusBar" name="statusBar" />
+    </widget>
+  <layoutDefault spacing="6" margin="11" />
+  <pixmapfunction/>
+  <resources>
+    <include location="LadybugVelodyne.qrc"/>
+  </resources>
+  <connections>
+    <connection>
+      <sender>play</sender>
+      <signal>clicked()</signal>
+      <receiver>viewer</receiver>
+      <slot>togglePlay()</slot>
+    </connection>
+    
+    <connection>
+      <sender>slider</sender>
+      <signal>valueChanged(int)</signal>
+      <receiver>viewer</receiver>
+      <slot>setTime(int)</slot>
+    </connection>
+  </connections>
 </UI>

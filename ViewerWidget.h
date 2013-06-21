@@ -29,8 +29,8 @@ class ViewerWidget : public QGLWidget
 	std::vector<GLuint> vertex_indices;
 	
 	std::multimap<double,std::streampos> velodyne_file_keys;
-	std::map<std::streampos,int> velodyne_keys;
-	std::vector<std::pair<int,int> > velodynes;
+	std::map<std::streampos,size_t> velodyne_keys;
+	std::vector<std::pair<size_t,int> > velodynes;
 	std::vector<GLfloat> points;
 
 	std::multimap<double,int> ladybug_keys;
