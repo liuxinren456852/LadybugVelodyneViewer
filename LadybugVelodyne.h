@@ -9,7 +9,7 @@ class LadybugVelodyne : public QMainWindow
 	Q_OBJECT
 
 public:
-	LadybugVelodyne(QWidget *parent = 0, Qt::WFlags flags = 0);
+	LadybugVelodyne(QWidget *parent = 0, Qt::WindowFlags flags = 0);
 	virtual ~LadybugVelodyne();
 
 private:
