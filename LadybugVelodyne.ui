@@ -4,44 +4,332 @@
     <property name="objectName" >
       <string notr="true">LadybugVelodyneClass</string>
     </property>
-    <property name="geometry" >
-      <rect>
-	      <x>0</x>
-	      <y>0</y>
-	      <width>600</width>
-	      <height>400</height>
-      </rect>
-    </property>
     <property name="windowTitle" >
       <string>LadybugVelodyne</string>
     </property>
-    <widget class="QMenuBar" name="menuBar" />
+    <property name="fixedSize">
+      <set>0,0</set>
+    </property>
+    <widget class="QMenuBar" name="menuBar">
+      <widget class="QMenu" name="menuFile">
+        <property name="title">
+          <string>File</string>
+        </property>
+        <addaction name="actionOpenVelodyne"/>
+        <addaction name="actionOpenLadybug"/>
+      </widget>
+      <addaction name="menuFile"/>
+    </widget>
     <widget class="QToolBar" name="mainToolBar" />
+    <action name="actionOpenVelodyne">
+      <property name="text">
+        <string>Open Velodyne</string>
+      </property>
+    </action>
+    <action name="actionOpenLadybug">
+      <property name="text">
+        <string>Open Ladybug</string>
+      </property>
+    </action>
     <widget class="QWidget" name="centralWidget">
       <layout class="QVBoxLayout">
         <item>
-          <widget class="QSlider" name="slider">
-            <property name="orientation">
-              <set>Qt::Horizontal</set>
-            </property>
-          </widget>
-        </item>
-        <item>
-          <widget class="QPushButton" name="play">
-            <property name="text">
-              <string>Play/Pause</string>
-            </property>
-          </widget>
-        </item>
-        <item>
           <widget class="ViewerWidget" name="viewer">
-            
+
+          </widget>
+        </item>
+        <item>
+          <widget class="QWidget">
+            <layout class="QHBoxLayout">
+              <item>
+                <widget class="QPushButton" name="prev">
+                  <property name="text">
+                    <string>&lt;</string>
+                  </property>
+                  <property name="sizePolicy">
+                    <set>QSizePolicy::Fixed, QSizePolicy::Fixed</set>
+                  </property>
+                  <property name="enabled">
+                    <set>false</set>
+                  </property>
+                </widget>
+              </item>
+              <item>
+                <widget class="QSlider" name="slider">
+                  <property name="orientation">
+                    <set>Qt::Horizontal</set>
+                  </property>
+                  <property name="sizePolicy">
+                    <set>QSizePolicy::Expanding, QSizePolicy::Fixed</set>
+                  </property>
+                  <property name="enabled">
+                    <set>false</set>
+                  </property>
+                </widget>
+              </item>
+              <item>
+                <widget class="QPushButton" name="next">
+                  <property name="text">
+                    <string>&gt;</string>
+                  </property>
+                  <property name="sizePolicy">
+                    <set>QSizePolicy::Fixed, QSizePolicy::Fixed</set>
+                  </property>
+                  <property name="enabled">
+                    <set>false</set>
+                  </property>
+                </widget>
+              </item>
+              <item>
+                <widget class="QPushButton" name="play">
+                  <property name="text">
+                    <string>Play/Pause</string>
+                  </property>
+                  <property name="sizePolicy">
+                    <set>QSizePolicy::Fixed, QSizePolicy::Fixed</set>
+                  </property>
+                  <property name="enabled">
+                    <set>false</set>
+                  </property>
+                </widget>
+              </item>
+            </layout>
+          </widget>
+        </item>
+        <item>
+          <widget class="QWidget">
+            <layout class="QHBoxLayout">
+              <item>
+                <widget class="QProgressBar" name="ladybugProgress">
+                </widget>
+              </item>
+              <item>
+                <widget class="QProgressBar" name="velodyneProgress">
+                </widget>
+              </item>
+            </layout>
+          </widget>
+        </item>
+
+        <item>
+          <widget class="QWidget">
+            <layout class="QHBoxLayout">
+              
+              <item>
+                <widget class="QWidget">
+                  <layout class="QGridLayout">
+                    <item row="0" column="1">
+                      <widget class="QPushButton" name="velodyneTiltUp">
+                        <property name="sizePolicy">
+                          <set>QSizePolicy::Fixed, QSizePolicy::Fixed</set>
+                        </property>
+                        <property name="enabled">
+                          <set>false</set>
+                        </property>
+                      </widget>
+                    </item>
+                    <item row="1" column="0">
+                      <widget class="QPushButton" name="velodyneRollLeft">
+                        <property name="sizePolicy">
+                          <set>QSizePolicy::Fixed, QSizePolicy::Fixed</set>
+                        </property>
+                        <property name="enabled">
+                          <set>false</set>
+                        </property>
+                      </widget>
+                    </item>
+                    <item row="1" column="2">
+                      <widget class="QPushButton" name="velodyneRollRight">
+                        <property name="sizePolicy">
+                          <set>QSizePolicy::Fixed, QSizePolicy::Fixed</set>
+                        </property>
+                        <property name="enabled">
+                          <set>false</set>
+                        </property>
+                      </widget>
+                    </item>
+                    <item row="2" column="1">
+                      <widget class="QPushButton" name="velodyneTiltDown">
+                        <property name="sizePolicy">
+                          <set>QSizePolicy::Fixed, QSizePolicy::Fixed</set>
+                        </property>
+                        <property name="enabled">
+                          <set>false</set>
+                        </property>
+                      </widget>
+                    </item>
+                    <item row="1" column="1">
+                      <widget class="QLabel">
+                        <property name="text">
+                          <string>Velodyne</string>
+                        </property>
+                        <property name="sizePolicy">
+                          <set>QSizePolicy::Fixed, QSizePolicy::Fixed</set>
+                        </property>
+                        <property name="alignment">
+                          <set>Qt::AlignCenter</set>
+                        </property>
+                      </widget>
+                    </item>
+                  </layout>
+                </widget>
+              </item>
+
+              <item>
+                <widget class="QWidget">
+                  <layout class="QGridLayout">
+                    <item row="0" column="0">
+                      <widget class="QPushButton" name="ladybugRotateLeft">
+                        <property name="sizePolicy">
+                          <set>QSizePolicy::Fixed, QSizePolicy::Fixed</set>
+                        </property>
+                        <property name="enabled">
+                          <set>false</set>
+                        </property>
+                      </widget>
+                    </item>
+                    <item row="0" column="2">
+                      <widget class="QPushButton" name="ladybugRotateRight">
+                        <property name="sizePolicy">
+                          <set>QSizePolicy::Fixed, QSizePolicy::Fixed</set>
+                        </property>
+                        <property name="enabled">
+                          <set>false</set>
+                        </property>
+                      </widget>
+                    </item>
+                    <item row="0" column="1">
+                      <widget class="QLabel">
+                        <property name="text">
+                          <string>Ladybug</string>
+                        </property>
+                        <property name="sizePolicy">
+                          <set>QSizePolicy::Fixed, QSizePolicy::Fixed</set>
+                        </property>
+                        <property name="alignment">
+                          <set>Qt::AlignCenter</set>
+                        </property>
+                      </widget>
+                    </item>
+                  </layout>
+                </widget>
+              </item>
+
+              <item>
+                <widget class="QWidget">
+                  <layout class="QGridLayout">
+                    <item row="0" column="0">
+                      <widget class="QPushButton" name="xminus">
+                        <property name="sizePolicy">
+                          <set>QSizePolicy::Fixed, QSizePolicy::Fixed</set>
+                        </property>
+                        <property name="enabled">
+                          <set>false</set>
+                        </property>
+                      </widget>
+                    </item>
+                    <item row="0" column="2">
+                      <widget class="QPushButton" name="xplus">
+                        <property name="sizePolicy">
+                          <set>QSizePolicy::Fixed, QSizePolicy::Fixed</set>
+                        </property>
+                        <property name="enabled">
+                          <set>false</set>
+                        </property>
+                      </widget>
+                    </item>
+                    <item row="0" column="1">
+                      <widget class="QLabel">
+                        <property name="text">
+                          <string>x</string>
+                        </property>
+                        <property name="sizePolicy">
+                          <set>QSizePolicy::Fixed, QSizePolicy::Fixed</set>
+                        </property>
+                        <property name="alignment">
+                          <set>Qt::AlignCenter</set>
+                        </property>
+                      </widget>
+                    </item>
+
+                    <item row="1" column="0">
+                      <widget class="QPushButton" name="yminus">
+                        <property name="sizePolicy">
+                          <set>QSizePolicy::Fixed, QSizePolicy::Fixed</set>
+                        </property>
+                        <property name="enabled">
+                          <set>false</set>
+                        </property>
+                      </widget>
+                    </item>
+                    <item row="1" column="2">
+                      <widget class="QPushButton" name="yplus">
+                        <property name="sizePolicy">
+                          <set>QSizePolicy::Fixed, QSizePolicy::Fixed</set>
+                        </property>
+                        <property name="enabled">
+                          <set>false</set>
+                        </property>
+                      </widget>
+                    </item>
+                    <item row="1" column="1">
+                      <widget class="QLabel">
+                        <property name="text">
+                          <string>y</string>
+                        </property>
+                        <property name="sizePolicy">
+                          <set>QSizePolicy::Fixed, QSizePolicy::Fixed</set>
+                        </property>
+                        <property name="alignment">
+                          <set>Qt::AlignCenter</set>
+                        </property>
+                      </widget>
+                    </item>
+
+                    <item row="2" column="0">
+                      <widget class="QPushButton" name="zminus">
+                        <property name="sizePolicy">
+                          <set>QSizePolicy::Fixed, QSizePolicy::Fixed</set>
+                        </property>
+                        <property name="enabled">
+                          <set>false</set>
+                        </property>
+                      </widget>
+                    </item>
+                    <item row="2" column="2">
+                      <widget class="QPushButton" name="zplus">
+                        <property name="sizePolicy">
+                          <set>QSizePolicy::Fixed, QSizePolicy::Fixed</set>
+                        </property>
+                        <property name="enabled">
+                          <set>false</set>
+                        </property>
+                      </widget>
+                    </item>
+                    <item row="2" column="1">
+                      <widget class="QLabel">
+                        <property name="text">
+                          <string>z</string>
+                        </property>
+                        <property name="sizePolicy">
+                          <set>QSizePolicy::Fixed, QSizePolicy::Fixed</set>
+                        </property>
+                        <property name="alignment">
+                          <set>Qt::AlignCenter</set>
+                        </property>
+                      </widget>
+                    </item>
+                  </layout>
+                </widget>
+              </item>
+
+            </layout>
           </widget>
         </item>
       </layout>
     </widget>
-    <widget class="QStatusBar" name="statusBar" />
-    </widget>
+    <widget class="QStatusBar" name="statusBar"/>
+  </widget>
   <layoutDefault spacing="6" margin="11" />
   <pixmapfunction/>
   <resources>
@@ -51,15 +339,295 @@
     <connection>
       <sender>play</sender>
       <signal>clicked()</signal>
-      <receiver>viewer</receiver>
-      <slot>togglePlay()</slot>
+      <receiver>this</receiver>
+      <slot>on_play_clicked()</slot>
     </connection>
-    
+
+    <connection>
+      <sender>next</sender>
+      <signal>clicked()</signal>
+      <receiver>viewer</receiver>
+      <slot>advance()</slot>
+    </connection>
+
+    <connection>
+      <sender>prev</sender>
+      <signal>clicked()</signal>
+      <receiver>viewer</receiver>
+      <slot>retreat()</slot>
+    </connection>
+
+    <connection>
+      <sender>velodyneTiltUp</sender>
+      <signal>clicked()</signal>
+      <receiver>viewer</receiver>
+      <slot>velodyneTiltUp()</slot>
+    </connection>
+
+    <connection>
+      <sender>velodyneTiltDown</sender>
+      <signal>clicked()</signal>
+      <receiver>viewer</receiver>
+      <slot>velodyneTiltDown()</slot>
+    </connection>
+
+    <connection>
+      <sender>velodyneRollLeft</sender>
+      <signal>clicked()</signal>
+      <receiver>viewer</receiver>
+      <slot>velodyneRollLeft()</slot>
+    </connection>
+
+    <connection>
+      <sender>velodyneRollRight</sender>
+      <signal>clicked()</signal>
+      <receiver>viewer</receiver>
+      <slot>velodyneRollRight()</slot>
+    </connection>
+
+    <connection>
+      <sender>ladybugRotateLeft</sender>
+      <signal>clicked()</signal>
+      <receiver>viewer</receiver>
+      <slot>ladybugRotateLeft()</slot>
+    </connection>
+
+    <connection>
+      <sender>ladybugRotateRight</sender>
+      <signal>clicked()</signal>
+      <receiver>viewer</receiver>
+      <slot>ladybugRotateRight()</slot>
+    </connection>
+
+    <connection>
+      <sender>xminus</sender>
+      <signal>clicked()</signal>
+      <receiver>viewer</receiver>
+      <slot>xminus()</slot>
+    </connection>
+
+    <connection>
+      <sender>xplus</sender>
+      <signal>clicked()</signal>
+      <receiver>viewer</receiver>
+      <slot>xplus()</slot>
+    </connection>
+
+    <connection>
+      <sender>yminus</sender>
+      <signal>clicked()</signal>
+      <receiver>viewer</receiver>
+      <slot>yminus()</slot>
+    </connection>
+
+    <connection>
+      <sender>yplus</sender>
+      <signal>clicked()</signal>
+      <receiver>viewer</receiver>
+      <slot>yplus()</slot>
+    </connection>
+
+    <connection>
+      <sender>zminus</sender>
+      <signal>clicked()</signal>
+      <receiver>viewer</receiver>
+      <slot>zminus()</slot>
+    </connection>
+
+    <connection>
+      <sender>zplus</sender>
+      <signal>clicked()</signal>
+      <receiver>viewer</receiver>
+      <slot>zplus()</slot>
+    </connection>
+
     <connection>
       <sender>slider</sender>
       <signal>valueChanged(int)</signal>
       <receiver>viewer</receiver>
       <slot>setTime(int)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>timeUpdate(int)</signal>
+      <receiver>slider</receiver>
+      <slot>setValue(int)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>timeUpdate(int)</signal>
+      <receiver>this</receiver>
+      <slot>on_viewer_timeUpdate(int)</slot>
+    </connection>
+
+    <connection>
+      <sender>actionOpenLadybug</sender>
+      <signal>triggered()</signal>
+      <receiver>this</receiver>
+      <slot>on_actionOpenVelodyne_triggered</slot>
+    </connection>
+
+    <connection>
+      <sender>actionOpenVelodyne</sender>
+      <signal>triggered()</signal>
+      <receiver>this</receiver>
+      <slot>on_actionOpenLadybug_triggered</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>numLadybugFramesChanged(int)</signal>
+      <receiver>ladybugProgress</receiver>
+      <slot>setMaximum(int)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>numLadybugFramesLoaded(int)</signal>
+      <receiver>ladybugProgress</receiver>
+      <slot>setValue(int)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>velodyneLogLength(int)</signal>
+      <receiver>velodyneProgress</receiver>
+      <slot>setMaximum(int)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>velodyneLogPosition(int)</signal>
+      <receiver>velodyneProgress</receiver>
+      <slot>setValue(int)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>playerState(bool)</signal>
+      <receiver>slider</receiver>
+      <slot>setEnabled(bool)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>playerState(bool)</signal>
+      <receiver>prev</receiver>
+      <slot>setEnabled(bool)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>playerState(bool)</signal>
+      <receiver>next</receiver>
+      <slot>setEnabled(bool)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>playerState(bool)</signal>
+      <receiver>play</receiver>
+      <slot>setEnabled(bool)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>playerState(bool)</signal>
+      <receiver>this</receiver>
+      <slot>start_play(bool)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>playerState(bool)</signal>
+      <receiver>velodyneTiltUp</receiver>
+      <slot>setEnabled(bool)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>playerState(bool)</signal>
+      <receiver>velodyneTiltDown</receiver>
+      <slot>setEnabled(bool)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>playerState(bool)</signal>
+      <receiver>velodyneRollLeft</receiver>
+      <slot>setEnabled(bool)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>playerState(bool)</signal>
+      <receiver>velodyneRollRight</receiver>
+      <slot>setEnabled(bool)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>playerState(bool)</signal>
+      <receiver>ladybugRotateLeft</receiver>
+      <slot>setEnabled(bool)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>playerState(bool)</signal>
+      <receiver>ladybugRotateRight</receiver>
+      <slot>setEnabled(bool)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>playerState(bool)</signal>
+      <receiver>xminus</receiver>
+      <slot>setEnabled(bool)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>playerState(bool)</signal>
+      <receiver>xplus</receiver>
+      <slot>setEnabled(bool)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>playerState(bool)</signal>
+      <receiver>yminus</receiver>
+      <slot>setEnabled(bool)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>playerState(bool)</signal>
+      <receiver>yplus</receiver>
+      <slot>setEnabled(bool)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>playerState(bool)</signal>
+      <receiver>zminus</receiver>
+      <slot>setEnabled(bool)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>playerState(bool)</signal>
+      <receiver>zplus</receiver>
+      <slot>setEnabled(bool)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>timeRange(int,int)</signal>
+      <receiver>slider</receiver>
+      <slot>setRange(int,int)</slot>
     </connection>
   </connections>
 </UI>

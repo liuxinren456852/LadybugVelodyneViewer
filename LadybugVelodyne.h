@@ -14,6 +14,14 @@ public:
 
 private:
 	Ui::LadybugVelodyneClass ui;
+	QTimer * const timer;
+
+private slots:
+	void on_actionOpenVelodyne_triggered();
+	void on_actionOpenLadybug_triggered();
+	void on_play_clicked();
+	void start_play(bool);
+	void on_viewer_timeUpdate(int);
 };
 
 #endif // LADYVELO_H

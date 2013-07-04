@@ -1,6 +1,11 @@
-void
-main()
+#version 120
+
+attribute vec3 vertex;
+
+varying vec4 texCoord;
+
+void main(void)
 {
-  gl_Position = gl_Vertex;
-  gl_TexCoord[0] = vec4(gl_Vertex.x/2.0f-0.25f, gl_Vertex.y/2.0f-0.5f, 1.0f, 1.0f);
+  gl_Position = vec4(vertex, 1.0f);
+  texCoord = vec4(vertex.x/2.0f+0.5f, 0.5f-vertex.y/2.0f, 1.0f, 1.0f);
 }

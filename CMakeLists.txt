@@ -48,6 +48,9 @@ FOREACH (shader ${LadybugVelodyne_GLSL_SHADERS})
 		MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/${shader})
 ENDFOREACH(shader)
 
+INCLUDE_DIRECTORIES("C:\\Program Files\\Point Grey Research\\Ladybug\\include")
+LINK_DIRECTORIES("C:\\Program Files\\Point Grey Research\\Ladybug\\lib64")
+
 ADD_EXECUTABLE(LadybugVelodyne
     ${LadybugVelodyne_SOURCES} 
     ${LadybugVelodyne_FORMS_HEADERS}
@@ -58,4 +61,5 @@ TARGET_LINK_LIBRARIES(LadybugVelodyne
     Qt5::Gui
     Qt5::OpenGL
     ${OPENGL_LIBRARIES}
+	ladybug.lib
 )
