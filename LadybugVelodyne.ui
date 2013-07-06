@@ -323,6 +323,29 @@
                 </widget>
               </item>
 
+              <item>
+                <widget class="QSlider" name="opacity">
+                  <property name="orientation">
+                    <set>Qt::Horizontal</set>
+                  </property>
+                  <property name="sizePolicy">
+                    <set>QSizePolicy::Expanding, QSizePolicy::Fixed</set>
+                  </property>
+                  <property name="enabled">
+                    <set>false</set>
+                  </property>
+                  <property name="minimum">
+                    <set>0</set>
+                  </property>
+                  <property name="maximum">
+                    <set>100</set>
+                  </property>
+                  <property name="value">
+                    <set>100</set>
+                  </property>
+                </widget>
+              </item>
+
             </layout>
           </widget>
         </item>
@@ -621,6 +644,20 @@
       <signal>playerState(bool)</signal>
       <receiver>zplus</receiver>
       <slot>setEnabled(bool)</slot>
+    </connection>
+
+    <connection>
+      <sender>viewer</sender>
+      <signal>playerState(bool)</signal>
+      <receiver>opacity</receiver>
+      <slot>setEnabled(bool)</slot>
+    </connection>
+
+    <connection>
+      <sender>opacity</sender>
+      <signal>valueChanged(int)</signal>
+      <receiver>viewer</receiver>
+      <slot>setOpacity(int)</slot>
     </connection>
 
     <connection>

@@ -1,3 +1,10 @@
+//#include <GL/glew.h>
+
+#define NOMINMAX
+#include <Windows.h>
+#include "glew.h"
+#include "wglew.h"
+
 #include "ViewerWidget.h"
 
 #include <sstream>
@@ -9,13 +16,17 @@
 
 #include <ladybugrenderer.h>
 
+#include <QResizeEvent>
+
+#define M_PI 3.14159265358979323846
+
 double ViewerWidget::velodyne_range_scale = 0.002;
 double ViewerWidget::velodyne_bottom_to_top_dist = 0.0762;
 
 ViewerWidget::ViewerWidget(QWidget * parent)
-	: QGLWidget(parent)
-	, panorama_shader(0)
-	, points_shader(0)
+	: QWidget(parent)
+	, panorama_program(0)
+	, points_program(0)
 	, ladybug_context(0)
 	, ladybug_stream_context(0)
 	, num_ladybug_images(0)
@@ -27,11 +38,22 @@ ViewerWidget::ViewerWidget(QWidget * parent)
 	, velodyne_idx(0)
 	, nLadybugTex(20)
 	, nVelodyneBuf(20)
-	, velodyne_rotation_z(0.075921819f)
-	, velodyne_rotation_y(-0.017453298f)
-	, ladybug_rotation(0.47996575f)//0.0523598776;
-	, center(QVector3D(-0.5715f, 0.1143f,0.42209989f))	
+	, velodyne_rotation_z(0.0f)
+	, velodyne_rotation_y(0.0f)
+	, ladybug_rotation(0.0f)
+	, center(QVector3D(-0.5715f, 0.1143f,0.42209989f))
+	, opacity(1.0f)
 {
+	contextInit();
+
+	setAutoFillBackground(false);
+	setAttribute(Qt::WA_OpaquePaintEvent);
+	setAttribute(Qt::WA_NoSystemBackground);
+	setAttribute(Qt::WA_NativeWindow);
+	setAttribute(Qt::WA_PaintOnScreen, true);
+	setAttribute(Qt::WA_StyledBackground, false);
+	setAttribute(Qt::WA_PaintUnclipped);
+
 	setMinimumHeight(512);
 	setMinimumWidth(1024);
 	setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
@@ -45,6 +67,8 @@ ViewerWidget::ViewerWidget(QWidget * parent)
 	velodyne_buf_map_inv.resize(nVelodyneBuf);
 
 	loadVelodyneCalibrations();
+
+	initializeGL();
 }
 
 ViewerWidget::~ViewerWidget()
@@ -52,7 +76,82 @@ ViewerWidget::~ViewerWidget()
 	closeVelodyne();
 	closeLadybug();
 
-	unloadShaders();
+	unloadPrograms();
+	contextDeinit();
+}
+
+void ViewerWidget::contextInit() {
+	HWND window = (HWND)winId();
+	assert(window);
+
+	PIXELFORMATDESCRIPTOR pfd;
+	memset(&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
+	int iPixelFormat;
+	pfd.nSize      = sizeof( PIXELFORMATDESCRIPTOR );
+	pfd.nVersion   = 1;
+	pfd.dwFlags    =	
+		PFD_DOUBLEBUFFER   |
+		PFD_SUPPORT_OPENGL |
+		PFD_DRAW_TO_WINDOW;
+	pfd.iPixelType = PFD_TYPE_RGBA;
+	pfd.cColorBits = 24;
+
+	HDC dc = GetDC(window);
+
+	iPixelFormat = ChoosePixelFormat(dc, &pfd);
+
+	SetPixelFormat(dc, iPixelFormat, &pfd);
+
+	HGLRC renderContext = wglCreateContext(dc);
+	assert(renderContext);
+
+	wglMakeCurrent(dc, renderContext);
+
+	iPixelFormat = GetPixelFormat(dc);
+	DescribePixelFormat(dc, iPixelFormat, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+	GLenum err = glewInit();
+	if (GLEW_OK != err)
+	{
+		std::cerr << "Error: " << glewGetErrorString(err) << std::endl;
+		assert(0);
+	}
+}
+
+void ViewerWidget::contextDeinit() {
+	HWND window = (HWND)winId();
+	HDC dc = GetDC(window);
+	HGLRC renderContext = wglCreateContext(dc);
+	wglMakeCurrent(dc, NULL);
+	wglDeleteContext(renderContext);
+}
+
+bool ViewerWidget::event(QEvent * event)
+{
+	BOOL success;
+	HDC dc;
+	QResizeEvent * re;
+
+	switch (event->type())
+	{
+	case QEvent::ParentChange:
+		assert(0);
+		break;
+	case QEvent::Paint:
+		paintGL();
+
+		dc = GetDC((HWND)winId());
+		success = SwapBuffers(dc);
+		assert(success != FALSE);
+		ReleaseDC((HWND)winId(), dc);
+		return true;
+
+	case QEvent::Resize:
+		re = (QResizeEvent*)event;
+		resizeGL(re->size().width(), re->size().height());
+		break;
+	}
+
+	return QWidget::event(event);
 }
 
 void ViewerWidget::checkLadybug(const LadybugError & error) const
@@ -81,34 +180,79 @@ unsigned long ViewerWidget::ntohl(unsigned long in) const
 	return (d<<24)|(c<<16)|(b<<8)|a;
 }
 
-void ViewerWidget::unloadShaders()
+void ViewerWidget::unloadPrograms()
 {
-	if (panorama_shader)
-		delete panorama_shader;
-
-	if (points_shader)
-		delete points_shader;
-
-	panorama_shader = 0;
-	points_shader = 0;
+	glDeleteProgram(panorama_program);
+	glDeleteProgram(points_program);
 }
 
-void ViewerWidget::loadShaders()
+GLuint ViewerWidget::initShader(GLenum type, const std::string & filename)
 {
-	panorama_shader = new QOpenGLShaderProgram();
-	panorama_shader->addShaderFromSourceFile(QOpenGLShader::Vertex, "shaders/panorama_vertex.glsl");
-	panorama_shader->addShaderFromSourceFile(QOpenGLShader::Fragment, "shaders/panorama_fragment.glsl");
-	panorama_shader->link();
+	std::ifstream file (filename.c_str());
+	assert(file);
+	std::string str((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+	const char * strings [1] = { str.c_str() };
+	GLuint shader = glCreateShader(type);
+	if (shader)
+	{
+		glShaderSource(shader, 1, strings, NULL);
+		glCompileShader(shader);
+		GLint compiled = GL_FALSE;
+		glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+		if (compiled)
+			return shader;
+	}
+	return 0;
+}
 
-	points_shader = new QOpenGLShaderProgram();
-	points_shader->addShaderFromSourceFile(QOpenGLShader::Vertex, "shaders/points_vertex.glsl");
-	points_shader->addShaderFromSourceFile(QOpenGLShader::Fragment, "shaders/points_fragment.glsl");
-	points_shader->link();
+GLuint ViewerWidget::initProgram(const std::string & vertex, const std::string & fragment) {
+	GLuint vertex_shader = initShader(GL_VERTEX_SHADER, vertex);
+	GLuint fragment_shader = initShader(GL_FRAGMENT_SHADER, fragment);
+	GLuint program = glCreateProgram();
+	if (program)
+	{
+		glAttachShader(program, vertex_shader);
+		glAttachShader(program, fragment_shader);
+		glLinkProgram(program);
+		glDetachShader(program, vertex_shader);
+		glDetachShader(program, fragment_shader);
+		glDeleteShader(vertex_shader);
+		glDeleteShader(fragment_shader);
+		return program;
+	}
+	else
+	{
+		glDeleteShader(vertex_shader);
+		glDeleteShader(fragment_shader);
+		return 0;
+	}
+}
+
+void ViewerWidget::loadPrograms()
+{
+	panorama_program = initProgram("shaders/panorama_vertex.glsl", "shaders/panorama_fragment.glsl");
+	panorama_vertex_loc = glGetAttribLocation(panorama_program, "vertex");
+	tex1_loc = glGetUniformLocation(panorama_program, "tex1");
+	tex2_loc = glGetUniformLocation(panorama_program, "tex2");
+	fade_loc = glGetUniformLocation(panorama_program, "fade");
+
+	points_program = initProgram("shaders/points_vertex.glsl", "shaders/points_fragment.glsl");
+	points_vertex_loc = glGetAttribLocation(points_program, "vertex");
+	velodyne_rotation_y_loc = glGetUniformLocation(points_program, "velodyne_rotation_y");
+	velodyne_rotation_z_loc = glGetUniformLocation(points_program, "velodyne_rotation_z");
+	ladybug_rotation_loc = glGetUniformLocation(points_program, "ladybug_rotation");
+	center_loc = glGetUniformLocation(points_program, "center");
+	age_loc = glGetUniformLocation(points_program, "age");
+	opacity_loc = glGetUniformLocation(points_program, "opacity");
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_PROGRAM_POINT_SIZE);
 }
 
 void ViewerWidget::loadVelodyneCalibrations()
 {
-	std::ifstream velodyneCalib ("C:\\Users\\Kevin James Matzen\\Desktop\\velodyne_calibration.csv");
+	std::ifstream velodyneCalib ("calibrations/velodyne.calib");
 
 	while (velodyneCalib)
 	{
@@ -150,7 +294,7 @@ GLuint ViewerWidget::ladybugLRU(unsigned int idx)
 	return ladybug_tex[pos];
 }
 
-QOpenGLBuffer * ViewerWidget::velodyneLRU(unsigned int idx)
+GLuint ViewerWidget::velodyneLRU(unsigned int idx)
 {
 	for (std::vector<int>::iterator i = velodyne_buf_lru.begin(); i != velodyne_buf_lru.end(); ++i)
 		++(*i);
@@ -174,8 +318,6 @@ QOpenGLBuffer * ViewerWidget::velodyneLRU(unsigned int idx)
 
 void ViewerWidget::generatePanorama(GLuint tex, unsigned int idx)
 {
-	QOpenGLFunctions glFuncs(QOpenGLContext::currentContext());
-
 	assert(ladybug_keys.size());
 
 	LadybugImage image;
@@ -188,41 +330,53 @@ void ViewerWidget::generatePanorama(GLuint tex, unsigned int idx)
 	unsigned int uiHeight, uiWidth;
 	checkLadybug(ladybugGetOffScreenImageSize(ladybug_context, LADYBUG_PANORAMIC, &uiWidth, &uiHeight));
 
-	glFuncs.glBindFramebuffer(GL_FRAMEBUFFER, ladybug_fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, ladybug_fbo);
 	glBindTexture(GL_TEXTURE_2D, tex);
 	glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, uiWidth, uiHeight, 0);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glFuncs.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void ViewerWidget::drawPanorama()
 {
-	QOpenGLFunctions glFuncs(QOpenGLContext::currentContext());
+	glUseProgram(panorama_program);
+	glBindBuffer(GL_ARRAY_BUFFER, ladybug_quad_vertices);
+	glVertexAttribPointer(panorama_vertex_loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glUniform1i(tex1_loc, 0);
+	glUniform1i(tex2_loc, 1);
+	glEnableVertexAttribArray(panorama_vertex_loc);
 
-	panorama_shader->bind();
-	ladybug_quad_vertices->bind();
-	panorama_shader->setAttributeBuffer("vertex", GL_FLOAT, 0, 3);
-	panorama_shader->setUniformValue("tex", 0);
-	panorama_shader->enableAttributeArray("vertex");
+	float fade = 0.0f;
+	GLuint tex1 = ladybugLRU(ladybug_idx);
+	GLuint tex2 = tex1;
+	if (ladybug_idx < ladybug_keys.size()-2)
+	{
+		uint64_t timea = ladybug_keys[ladybug_idx].first;
+		uint64_t timeb = ladybug_keys[ladybug_idx+1].first;
 
-	GLuint tex = ladybugLRU(ladybug_idx);
+		fade = std::min(1.0f, std::max(0.0f, float(time - timea)/(timeb - timea)));
+		tex2 = ladybugLRU(ladybug_idx+1);
+	}
 
-	glFuncs.glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, tex);
+	glUniform1f(fade_loc, fade);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, tex1);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, tex2);
 
 	glDrawArrays(GL_QUADS, 0, 4);
-
-	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void ViewerWidget::generatePoints(QOpenGLBuffer * buf, unsigned int idx)
+void ViewerWidget::generatePoints(GLuint buf, unsigned int idx)
 {
 	assert(velodyne_keys.size());
 
 	velodyne_file.seekg(velodyne_keys[idx].second);
 
-	buf->bind();
-	char * ptr = (char*)buf->map(QOpenGLBuffer::WriteOnly);
+	glBindBuffer(GL_ARRAY_BUFFER, buf);
+	char * ptr = (char*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
 	for (int i = 0; i < 12; ++i)
 	{
 		uint16_t header;
@@ -284,7 +438,7 @@ void ViewerWidget::generatePoints(QOpenGLBuffer * buf, unsigned int idx)
 			ptr += sizeof(pz);
 		}
 	}
-	buf->unmap();
+	glUnmapBuffer(GL_ARRAY_BUFFER);
 }
 
 void ViewerWidget::drawPoints()
@@ -293,25 +447,24 @@ void ViewerWidget::drawPoints()
 	while (time - velodyne_keys[start].first < 1000 && start > 0)
 		--start;
 
-	points_shader->bind();
-	glEnable(GL_POINT_SMOOTH);
-	glPointSize(2.0f);
-	points_shader->enableAttributeArray("vertex");
+	glUseProgram(points_program);
+	glEnableVertexAttribArray(points_vertex_loc);
 
-	points_shader->setUniformValue("velodyne_rotation_y", velodyne_rotation_y);
-	points_shader->setUniformValue("velodyne_rotation_z", velodyne_rotation_z);
-	points_shader->setUniformValue("ladybug_rotation", ladybug_rotation);
-	points_shader->setUniformValue("center", center);
+	glUniform1f(velodyne_rotation_y_loc, velodyne_rotation_y);
+	glUniform1f(velodyne_rotation_z_loc, velodyne_rotation_z);
+	glUniform1f(ladybug_rotation_loc, ladybug_rotation);
+	glUniform3f(center_loc, center.x(), center.y(), center.z());
+	glUniform1f(opacity_loc, opacity);
 
 	for (unsigned int i = start; i <= velodyne_idx; ++i)
 	{
 		uint64_t t = velodyne_keys[i].first;
 
-		QOpenGLBuffer * buf = velodyneLRU(i);
+		GLuint buf = velodyneLRU(i);
 
-		buf->bind();
-		points_shader->setAttributeBuffer("vertex", GL_FLOAT, 0, 3);
-		points_shader->setUniformValue("age", (time-t)/1000.0f);
+		glBindBuffer(GL_ARRAY_BUFFER, buf);
+		glVertexAttribPointer(points_vertex_loc, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		glUniform1f(age_loc, (time-t)/1000.0f);
 
 		glClear(GL_DEPTH_BUFFER_BIT);
 		glDrawArrays(GL_POINTS, 0, 12*32);
@@ -340,19 +493,19 @@ void ViewerWidget::setTime(int value)
 
 void ViewerWidget::advance()
 {
-	setTime(time+166);
+	setTime(time+667);
 	emit timeUpdate(time);
 }
 
 void ViewerWidget::retreat()
 {
-	setTime(time-166);
+	setTime(time-667);
 	emit timeUpdate(time);
 }
 
 void ViewerWidget::initializeGL()
 {
-	loadShaders();
+	loadPrograms();
 }
 
 void ViewerWidget::recordImage()
@@ -372,10 +525,8 @@ void ViewerWidget::resizeGL(int width, int height)
 
 void ViewerWidget::paintGL()
 {
+
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glEnable(GL_PROGRAM_POINT_SIZE);
 
 	if (2 == both_loaded.load())
 	{
@@ -461,6 +612,10 @@ void ViewerWidget::zplus()
 	update();
 }
 
+void ViewerWidget::setOpacity(int o) {
+	opacity = o/100.0f;
+	update();
+}
 
 void ViewerWidget::openVelodyne(const QString & s)
 {
@@ -476,13 +631,11 @@ void ViewerWidget::openVelodyne(const QString & s)
 	velodyne_filename = s;
 	velodyne_file.open(velodyne_filename.toStdString().c_str(), std::ios_base::binary);
 
-	for (std::vector<QOpenGLBuffer*>::iterator i = velodyne_buf.begin(); i != velodyne_buf.end(); ++i)
+	glGenBuffers((GLsizei)velodyne_buf.size(), &velodyne_buf[0]);
+	for (std::vector<GLuint>::iterator i = velodyne_buf.begin(); i != velodyne_buf.end(); ++i)
 	{
-		*i = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-		(*i)->setUsagePattern(QOpenGLBuffer::DynamicDraw);
-		(*i)->create();
-		(*i)->bind();
-		(*i)->allocate(sizeof(float)*3*32*12);
+		glBindBuffer(GL_ARRAY_BUFFER, *i);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(float)*3*32*12, NULL, GL_DYNAMIC_DRAW);
 	}
 
 	velodyne_loader = new VelodyneLoader(this);
@@ -491,8 +644,6 @@ void ViewerWidget::openVelodyne(const QString & s)
 
 void ViewerWidget::openLadybug(const QString & s)
 {
-	QOpenGLFunctions glFuncs(QOpenGLContext::currentContext());
-
 	if (1 == ladybug_loaded.load())
 	{
 		ladybug_loaded.deref();
@@ -517,28 +668,29 @@ void ViewerWidget::openLadybug(const QString & s)
 	checkLadybug(ladybugLoadConfig(ladybug_context, ladybug_config_filename.toStdString().c_str()));
 	checkLadybug(ladybugConfigureOutputImages(ladybug_context, LADYBUG_PANORAMIC));
 	checkLadybug(ladybugSetPanoramicViewingAngle(ladybug_context, LADYBUG_FRONT_1_POLE_5));
-	//checkLadybug(ladybugSetColorProcessingMethod(ladybug_context, LADYBUG_HQLINEAR_GPU));
+	checkLadybug(ladybugSetColorProcessingMethod(ladybug_context, LADYBUG_HQLINEAR_GPU));
 
 	if (velodyne_loader)
 	{
 		velodyne_buf_map.clear();
-		for (std::vector<QOpenGLBuffer*>::iterator i = velodyne_buf.begin(); i != velodyne_buf.end(); ++i)
-			delete *i;
+		glDeleteBuffers((GLsizei)velodyne_buf.size(), &velodyne_buf[0]);
 	}
 
-	unloadShaders();
+	unloadPrograms();
+	contextDeinit();
+	contextInit();
 
-	checkLadybug(ladybugSetDisplayWindow(ladybug_context));
+	ladybugSetDisplayWindow(ladybug_context);
+	DWORD code = GetLastError();
+	std::cerr << "wglShareLists: " << code << std::endl;
 
 	if (velodyne_loader)
 	{
-		for (std::vector<QOpenGLBuffer*>::iterator i = velodyne_buf.begin(); i != velodyne_buf.end(); ++i)
+		glGenBuffers((GLsizei)velodyne_buf.size(), &velodyne_buf[0]);
+		for (std::vector<GLuint>::iterator i = velodyne_buf.begin(); i != velodyne_buf.end(); ++i)
 		{
-			*i = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-			(*i)->setUsagePattern(QOpenGLBuffer::DynamicDraw);
-			(*i)->create();
-			(*i)->bind();
-			(*i)->allocate(sizeof(float)*3*32*12);
+			glBindBuffer(GL_ARRAY_BUFFER, *i);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(float)*3*32*12, NULL, GL_DYNAMIC_DRAW);
 		}
 	}
 
@@ -559,19 +711,17 @@ void ViewerWidget::openLadybug(const QString & s)
 	for (std::vector<GLuint>::iterator i = ladybug_tex.begin(); i != ladybug_tex.end(); ++i)
 	{
 		glBindTexture(GL_TEXTURE_2D, *i);
-		glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); 
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, uiWidth, uiHeight, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8, NULL);
 	}	
-	glBindTexture(GL_TEXTURE_2D, 0);
 	
-	glFuncs.glGenFramebuffers(1, &ladybug_fbo);
-	glFuncs.glBindFramebuffer(GL_FRAMEBUFFER, ladybug_fbo);
-	glFuncs.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, *puiID, 0);
-	glFuncs.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glGenFramebuffers(1, &ladybug_fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, ladybug_fbo);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, *puiID, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	ladybug_quad_vertices = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-	ladybug_quad_vertices->setUsagePattern(QOpenGLBuffer::StaticDraw);
-	ladybug_quad_vertices->create();
+	glGenBuffers(1, &ladybug_quad_vertices);
+	glBindBuffer(GL_ARRAY_BUFFER, ladybug_quad_vertices);
+
 	std::vector<QVector3D> vertices;
 		
 	vertices.push_back(QVector3D(-1, -1, 1));
@@ -579,10 +729,9 @@ void ViewerWidget::openLadybug(const QString & s)
 	vertices.push_back(QVector3D(1, 1, 1));
 	vertices.push_back(QVector3D(1, -1, 1));
 
-	ladybug_quad_vertices->bind();
-	ladybug_quad_vertices->allocate(&vertices[0], (int)vertices.size()*sizeof(QVector3D));
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float)*3*4, &vertices[0], GL_STATIC_DRAW);
 
-	loadShaders();
+	loadPrograms();
 	
 	ladybug_loader = new LadybugLoader(this);
 	ladybug_loader->start();
@@ -601,8 +750,7 @@ void ViewerWidget::closeVelodyne()
 		velodyne_keys.clear();
 
 		velodyne_buf_map.clear();
-		for (std::vector<QOpenGLBuffer*>::iterator i = velodyne_buf.begin(); i != velodyne_buf.end(); ++i)
-			delete *i;
+		glDeleteBuffers((GLsizei)velodyne_buf.size(), &velodyne_buf[0]);
 	}
 
 }
@@ -611,20 +759,18 @@ void ViewerWidget::closeLadybug()
 {
 	if (ladybug_loader)
 	{
-		QOpenGLFunctions glFuncs(QOpenGLContext::currentContext());
-
 		ladybug_loader->stop();
 		while(!ladybug_loader->isFinished()) QThread::msleep(10);
 		delete ladybug_loader;
 		ladybug_loader = 0;
 
-		delete ladybug_quad_vertices;
+		glDeleteBuffers(1, &ladybug_quad_vertices);
 
 		ladybug_tex_map.clear();
 
 		checkLadybug(ladybugReleaseOffScreenImage(ladybug_context, LADYBUG_PANORAMIC));
 
-		glFuncs.glDeleteFramebuffers(1, &ladybug_fbo);
+		glDeleteFramebuffers(1, &ladybug_fbo);
 		
 		glDeleteTextures((GLsizei)ladybug_tex.size(), &ladybug_tex[0]);
 		ladybug_tex_map.clear();
@@ -747,6 +893,14 @@ void ViewerWidget::VelodyneLoader::run()
 			std::pair<uint64_t,std::ifstream::pos_type> p;
 			velodyne_keys_cached.read(reinterpret_cast<char*>(&p.first), sizeof(p.first));
 			velodyne_keys_cached.read(reinterpret_cast<char*>(&p.second), sizeof(p.second));
+			/*
+			if (i > 0) {
+				uint64_t diff = p.first - viewer_->velodyne_keys.back().first;
+				if (diff < 3 || diff > 4)
+					std::cerr << i << " " << diff << std::endl;
+			}
+			*/
+
 			if (velodyne_keys_cached)
 				viewer_->velodyne_keys.push_back(p);
 

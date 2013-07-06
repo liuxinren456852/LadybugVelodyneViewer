@@ -1,6 +1,6 @@
 #include "LadybugVelodyne.h"
 
-#include <QtGui>
+#include <QtWidgets>
 
 #include <sstream>
 
@@ -19,7 +19,7 @@ LadybugVelodyne::~LadybugVelodyne()
 
 void LadybugVelodyne::on_actionOpenLadybug_triggered()
 {
-	QString filename = /*"Z:\\skynet\\ladybug-capture-179000.pgr";//*/ QFileDialog::getOpenFileName(this, tr("Open Ladybug File"), QString(), tr("Point Grey Ladybug Stream (*.pgr)"));
+	QString filename = /*"Z:\\skynet\\ladybug-capture-179000.pgr";//*/ QFileDialog::getOpenFileName(this, tr("Open Ladybug File"), QString("c:\\tmp"), tr("Point Grey Ladybug Stream (*.pgr)"));
 
 	if(!filename.isEmpty())
 	{
@@ -29,7 +29,7 @@ void LadybugVelodyne::on_actionOpenLadybug_triggered()
 
 void LadybugVelodyne::on_actionOpenVelodyne_triggered()
 {
-	QString filename = /*"Z:\\skynet\\udp_log 2013-07-03 11 48 16PM-velo.dat";//*/ QFileDialog::getOpenFileName(this, tr("Open Skynet UDP Log File"), QString(), tr("Skynet UDP Log (*.dat)"));
+	QString filename = /*"Z:\\skynet\\udp_log 2013-07-03 11 48 16PM-velo.dat";//*/ QFileDialog::getOpenFileName(this, tr("Open Skynet UDP Log File"), QString("c:\\tmp"), tr("Skynet UDP Log (*.dat)"));
 
 	if(!filename.isEmpty())
 	{
@@ -45,7 +45,7 @@ void LadybugVelodyne::on_play_clicked()
 void LadybugVelodyne::start_play(bool start)
 {
 	if (start)
-		timer->start(133);
+		timer->start(16);
 	else
 		timer->stop();
 }

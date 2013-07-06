@@ -1,14 +1,22 @@
 #ifndef VIEWER_WIDGET_H
 #define VIEWER_WIDGET_H
 
-#include <QtOpenGL>
+
+//#include <QtGui>
+#include <QThread>
+#include <QVector3D>
+#include <QtWidgets/QWidget>
 
 #include <fstream>
+#include <cassert>
+#include <stdint.h>
+#include <vector>
+#include <map>
 
 #include <ladybug.h>
 #include <ladybugstream.h>
 
-class ViewerWidget : public QGLWidget
+class ViewerWidget : public QWidget
 {
 	Q_OBJECT
 
@@ -25,8 +33,8 @@ class ViewerWidget : public QGLWidget
 
 	std::vector<VelodyneCalibration> velodyneCalibrations;
 
-	QOpenGLShaderProgram * panorama_shader;
-	QOpenGLShaderProgram * points_shader;
+	GLuint panorama_program;
+	GLuint points_program;
 	
 	uint64_t time;
 
@@ -60,7 +68,7 @@ class ViewerWidget : public QGLWidget
 	std::vector<unsigned int> ladybug_tex_map_inv;
 	std::vector<int> ladybug_tex_lru;
 
-	QOpenGLBuffer * ladybug_quad_vertices;
+	GLuint ladybug_quad_vertices;
 
 	unsigned int ladybug_idx;
 	
@@ -87,7 +95,7 @@ class ViewerWidget : public QGLWidget
 	VelodyneLoader * velodyne_loader;
 	QAtomicInt velodyne_loaded;
 
-	std::vector<QOpenGLBuffer*> velodyne_buf;
+	std::vector<GLuint> velodyne_buf;
 	std::map<unsigned int,size_t> velodyne_buf_map;
 	std::vector<unsigned int> velodyne_buf_map_inv;
 	std::vector<int> velodyne_buf_lru;
@@ -97,10 +105,25 @@ class ViewerWidget : public QGLWidget
 	const int nVelodyneBuf;
 	/***********/
 
+	GLint panorama_vertex_loc;
+	GLint tex1_loc;
+	GLint tex2_loc;
+	GLint fade_loc;
+
+	GLint points_vertex_loc;
+	GLint velodyne_rotation_y_loc;
+	GLint velodyne_rotation_z_loc;
+	GLint ladybug_rotation_loc;
+	GLint center_loc;
+	GLint age_loc;
+	GLint opacity_loc;
+
 	float velodyne_rotation_z;
 	float velodyne_rotation_y;
 	float ladybug_rotation;
 	QVector3D center;
+
+	float opacity;
 
 	static double velodyne_range_scale;
 	static double velodyne_bottom_to_top_dist;
@@ -108,8 +131,8 @@ class ViewerWidget : public QGLWidget
 	unsigned short ntohs(unsigned short) const;
 	unsigned long ntohl(unsigned long) const;
 	
-	void loadShaders();
-	void unloadShaders();
+	void loadPrograms();
+	void unloadPrograms();
 	
 	void loadVelodyneCalibrations();
 	void loadPoints();
@@ -117,7 +140,7 @@ class ViewerWidget : public QGLWidget
 	void generatePanorama(GLuint, unsigned int);
 	void drawPanorama();
 	
-	void generatePoints(QOpenGLBuffer *, unsigned int);
+	void generatePoints(GLuint, unsigned int);
 	void drawPoints();
 	
 	void recordImage();
@@ -127,14 +150,22 @@ class ViewerWidget : public QGLWidget
 	void setTime(int, bool);
 
 	GLuint ladybugLRU(unsigned int idx);
-	QOpenGLBuffer * velodyneLRU(unsigned int idx);
+	GLuint velodyneLRU(unsigned int idx);
 
 	void closeLadybug();
 	void closeVelodyne();
 
-	void initializeGL() Q_DECL_OVERRIDE;
-	void paintGL() Q_DECL_OVERRIDE;
-	void resizeGL(int width, int height) Q_DECL_OVERRIDE;
+	GLuint initProgram(const std::string & vertex, const std::string & fragment);
+	GLuint initShader(GLenum type, const std::string & source);
+
+	void contextInit();
+	void contextDeinit();
+
+	bool event(QEvent * event) Q_DECL_OVERRIDE;
+	QPaintEngine* paintEngine() const Q_DECL_OVERRIDE { return 0; }
+	void initializeGL();
+	void paintGL();
+	void resizeGL(int width, int height);
 
 signals:
 	void numLadybugFramesChanged(int);
@@ -162,6 +193,7 @@ public slots:
 	void yplus();
 	void zminus();
 	void zplus();
+	void setOpacity(int);
 
 public:
 	ViewerWidget(QWidget *);
